@@ -1,0 +1,188 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// ----------------------
+// কোর মডেল (Core Models)
+// ----------------------
+
+// ১. ব্যবহারকারী (User)
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  orderDate     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // সম্পর্ক (Relations)
+  carts         Cart[]
+  orders        Order[]
+  reviews       Review[]
+  
+  @@map("users")
+}
+
+model Admin {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  orderDate     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  products      Product[]
+
+  @@map("admin")
+}
+
+// ২. পণ্য (Product)
+model Product {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  price         Float     // Decimal ব্যবহার করা ভালো, তবে Float সহজ
+  stock         Int       @default(0)
+  imageUrl      String[]
+  featured      Boolean?  @default(false)
+  
+  // সম্পর্ক (Relations)
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  adminId       String?   // ফরেন কি
+  admin         Admin?    @relation(fields: [adminId], references: [id])
+
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  reviews       Review[]
+  
+  @@map("products")
+}
+
+// ৩. বিভাগ (Category)
+model Category {
+  id            String    @id @default(cuid())
+  name          String    @unique
+  
+  // সম্পর্ক (Relations)
+  products      Product[]
+  
+  @@map("categories")
+}
+
+// ----------------------
+// লেনদেন মডেল (Transaction Models)
+// ----------------------
+
+// ৪. কার্ট (Cart)
+model Cart {
+  id            String    @id @default(cuid())
+  userId        String    @unique // একজন ব্যবহারকারীর জন্য একটি মাত্র কার্ট
+  orderDate     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // সম্পর্ক (Relations)
+  user          User      @relation(fields: [userId], references: [id])
+  items         CartItem[]
+  
+  @@map("carts")
+}
+
+// ৫. কার্ট আইটেম (CartItem) - কার্টে থাকা পণ্য
+model CartItem {
+  id            String    @id @default(cuid())
+  cartId        String
+  productId     String
+  quantity      Int
+  
+  // সম্পর্ক (Relations)
+  cart          Cart      @relation(fields: [cartId], references: [id])
+  product       Product   @relation(fields: [productId], references: [id])
+  
+  @@unique([cartId, productId]) // একটি কার্টে একটি পণ্য একবারই থাকতে পারে
+  @@map("cart_items")
+}
+
+// ৬. অর্ডার (Order)
+model Order {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?
+  phoneNumber   String?
+  address       String?
+  city          String?
+  zipCode       String?
+  userId        String
+  totalAmount   Float
+  paymentMethod String?     // <-- এখানে payment method থাকবে
+  paymentStatus String?       @default("pending")
+  status        OrderStatus @default(PENDING) // ENUM ব্যবহার করা হয়েছে
+  orderDate     DateTime  @default(now())
+  
+  // সম্পর্ক (Relations)
+  user          User        @relation(fields: [userId], references: [id])
+  items         OrderItem[]
+  
+  @@map("orders")
+}
+
+// ৭. অর্ডার আইটেম (OrderItem) - অর্ডারের মধ্যে থাকা পণ্য
+model OrderItem {
+  id            String    @id @default(cuid())
+  orderId       String
+  productId     String
+  quantity      Int
+  priceAtOrder  Float     // অর্ডারের সময় পণ্যের দাম (গুরুত্বপূর্ণ)
+  
+  // সম্পর্ক (Relations)
+  order         Order     @relation(fields: [orderId], references: [id])
+  product       Product   @relation(fields: [productId], references: [id])
+  
+  @@map("order_items")
+}
+
+// ----------------------
+// অন্যান্য মডেল (Other Models)
+// ----------------------
+
+// ৮. রিভিউ (Review)
+model Review {
+  id            String    @id @default(cuid())
+  productId     String
+  userId        String
+  rating        Int       @default(0) // ১ থেকে ৫ এর মধ্যে
+  comment       String?
+  orderDate     DateTime  @default(now())
+  
+  // সম্পর্ক (Relations)
+  product       Product   @relation(fields: [productId], references: [id])
+  user          User      @relation(fields: [userId], references: [id])
+  
+  @@unique([productId, userId]) // একজন ব্যবহারকারী একটি পণ্যের জন্য একবারই রিভিউ দিতে পারবে
+  @@map("reviews")
+}
+
+
+// ----------------------
+// ENUMs
+// ----------------------
+
+// অর্ডারের অবস্থা
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
