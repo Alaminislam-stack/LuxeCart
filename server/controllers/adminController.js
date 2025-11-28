@@ -1,14 +1,14 @@
-import { asyncHandler } from "../utils/asyncHedler.js"
-import { errorHandler } from '../utils/errorHendler.js'
+import { asyncHandler } from "../utils/asyncHedler.js";
+import { errorHandler } from "../utils/errorHendler.js";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient()
-const jwtSecret = process.env.JWTSECRET || 'nalkdfjhoeirqo39304'
+const prisma = new PrismaClient();
+const jwtSecret = process.env.JWTSECRET || "nalkdfjhoeirqo39304";
 
 export const createAdmin = asyncHandler(async (req, res, next) => {
-  const { email, name, password } = req.body
+  const { email, name, password } = req.body;
   if (!email || !name || !password) {
     return next(new errorHandler("All fields are required", 400));
   }
@@ -18,23 +18,21 @@ export const createAdmin = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Admin already exists", 400));
   }
 
-  const passwordHash = await bcrypt.hash(password, 10)
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const admin = await prisma.admin.create({
-    data: { email, name, passwordHash }
-  })
+    data: { email, name, passwordHash },
+  });
 
   res.status(200).json({
     success: true,
     message: "admin create successful",
     user: admin,
   });
-
-})
-
+});
 
 export const loginAdmin = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body
+  const { email, password } = req.body;
   if (!email || !password) {
     return next(new errorHandler("All fields are required", 400));
   }
@@ -46,19 +44,21 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Admin Not Found", 404));
   }
 
-  const isMach = await bcrypt.compare(password, admin.passwordHash)
+  const isMach = await bcrypt.compare(password, admin.passwordHash);
   if (!isMach) {
-    return next(new errorHandler("Admin Not Found"), 404)
+    return next(new errorHandler("Admin Not Found"), 404);
   }
-
 
   const token = jwt.sign({ id: admin.id, email: admin.email }, jwtSecret, {
     expiresIn: "7d",
-  })
+  });
 
   res.cookie("adminToken", token, {
+    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
   });
 
   res.status(200).json({
@@ -66,13 +66,10 @@ export const loginAdmin = asyncHandler(async (req, res, next) => {
     message: "admin login successful",
     admin,
   });
-
-})
-
+});
 
 export const getAdminProfile = asyncHandler(async (req, res, next) => {
-
-  const adminId = req.admin.id
+  const adminId = req.admin.id;
 
   const admin = await prisma.admin.findUnique({
     where: { id: adminId },
@@ -88,12 +85,10 @@ export const getAdminProfile = asyncHandler(async (req, res, next) => {
     message: "admin profile fach successful",
     admin: profileWithoutPassword,
   });
-
-})
+});
 
 export const logoutAdmin = asyncHandler(async (req, res, next) => {
-
-  const adminId = req.admin.id
+  const adminId = req.admin.id;
 
   const admin = await prisma.admin.findUnique({
     where: { id: adminId },
@@ -102,8 +97,8 @@ export const logoutAdmin = asyncHandler(async (req, res, next) => {
     return next(new errorHandler("Admin Not Found", 404));
   }
 
-
   res.cookie("adminToken", "", {
+    httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     maxAge: 0,
   });
@@ -112,5 +107,4 @@ export const logoutAdmin = asyncHandler(async (req, res, next) => {
     success: true,
     message: "admin logout successful",
   });
-
-})
+});
