@@ -24,7 +24,6 @@ model User {
   email         String    @unique
   name          String?
   passwordHash  String
-  orderDate     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   // সম্পর্ক (Relations)
@@ -40,7 +39,6 @@ model Admin {
   name          String
   email         String    @unique
   passwordHash  String
-  orderDate     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   products      Product[]
 
@@ -162,8 +160,7 @@ model Review {
   userId        String
   rating        Int       @default(0) // ১ থেকে ৫ এর মধ্যে
   comment       String?
-  orderDate     DateTime  @default(now())
-  
+
   // সম্পর্ক (Relations)
   product       Product   @relation(fields: [productId], references: [id])
   user          User      @relation(fields: [userId], references: [id])
