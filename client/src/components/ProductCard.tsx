@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart, Eye, Loader } from "lucide-react";
 import { useCart } from "../contexts/CartContext";
 import type { Product } from "../types";
 
@@ -10,6 +10,16 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const [adding, setAdding] = useState(false);
+
+  const handleAddToCart = async () => {
+    setAdding(true);
+    try {
+      await addToCart(product.id);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div className="card group overflow-hidden">
@@ -24,11 +34,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Overlay Actions */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4">
           <button
-            onClick={() => addToCart(product.id)}
-            className="p-3 bg-white rounded-full text-gray-900 hover:bg-primary-600 hover:text-white transition-colors transform translate-y-4 group-hover:translate-y-0 duration-300"
+            onClick={handleAddToCart}
+            disabled={adding || product.stock <= 0}
+            className="p-3 bg-white rounded-full text-gray-900 hover:bg-primary-600 hover:text-white transition-colors transform translate-y-4 group-hover:translate-y-0 duration-300 disabled:opacity-75 disabled:cursor-not-allowed"
             title="Add to Cart"
           >
-            <ShoppingCart size={20} />
+            {adding ? (
+              <Loader size={20} className="animate-spin" />
+            ) : (
+              <ShoppingCart size={20} />
+            )}
           </button>
           <Link
             to={`/products/${product.id}`}

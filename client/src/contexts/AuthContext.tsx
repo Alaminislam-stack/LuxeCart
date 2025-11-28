@@ -26,16 +26,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const checkAuth = async () => {
     try {
-      const response = await authApi.getProfile();
-      // Server returns { success, message, user: {...} }
-      const userData = (response as any).user || response.data;
-      if (userData) {
-        setUser(userData);
-      } else {
+      // Check User Auth
+      try {
+        const response = await authApi.getProfile();
+        // Server returns { success, message, user: {...} }
+        const userData = (response as any).user || response.data;
+        if (userData) {
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
         setUser(null);
       }
+
+      // Check Admin Auth
+      try {
+        const adminResponse = await adminApi.getProfile();
+        // Cast to any or AdminAuthResponse because the backend returns 'admin' at top level
+        const adminData = (adminResponse as any).admin || adminResponse.data;
+
+        if (adminData) {
+          setAdmin(adminData);
+        } else {
+          setAdmin(null);
+        }
+      } catch (error) {
+        setAdmin(null);
+      }
     } catch (error) {
-      setUser(null);
+      console.error("Auth check failed", error);
     } finally {
       setIsLoading(false);
     }
@@ -49,6 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const response = await authApi.login(credentials);
     if (response.success && response.user) {
       setUser(response.user);
+    } else {
+      throw new Error(response.message || "Login failed");
     }
   };
 
@@ -72,13 +94,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const response = await adminApi.login(credentials);
     if (response.success && response.admin) {
       setAdmin(response.admin);
+    } else {
+      throw new Error(response.message || "Admin login failed");
     }
   };
 
   const adminLogout = async () => {
     try {
       await adminApi.logout();
-      setUser(null);
+      setAdmin(null);
     } catch (error) {
       console.error("Logout failed", error);
     }

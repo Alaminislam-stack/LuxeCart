@@ -1,14 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Shield, Mail, Lock, Loader } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-
-const getCookie = (name: string) => {
-    const cookies = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`));
-    return cookies ? cookies.split("=")[1] : null;
-  };
 
 const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -18,24 +11,34 @@ const AdminLogin: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { adminLogin } = useAuth();
+  const { adminLogin, admin } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const adminToken = getCookie("adminToken");
-
-  if (adminToken) {
-    navigate("/admin");
-  }
+  // Check if already logged in
+  useEffect(() => {
+    if (admin) {
+      navigate("/admin");
+    }
+  }, [admin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    adminLogin(formData);
-    setLoading(false);
+
+    try {
+      await adminLogin(formData);
+      navigate("/admin");
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Login failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

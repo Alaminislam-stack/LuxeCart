@@ -1,23 +1,24 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { Loader } from "lucide-react";
 
 function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
-  // Function to get a cookie value by name
-  const getCookie = (name: string) => {
-    const cookies = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`));
-    return cookies ? cookies.split("=")[1] : null;
-  };
+  const { admin, isLoading } = useAuth();
 
-  // Example usage:
-  const adminToken = getCookie("adminToken");
-
-  if (!adminToken) {
-    return <Navigate to="/admin/login" />;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader className="animate-spin text-primary-600" size={40} />
+      </div>
+    );
   }
 
-  return adminToken ? children : <Navigate to="/admin/login" />;
+  if (!admin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <>{children}</>;
 }
 
 export default AdminProtectedRoute;
