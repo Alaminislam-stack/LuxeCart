@@ -5,13 +5,8 @@ import {
   Truck,
   Shield,
   RefreshCw,
-  Timer,
   Tag,
   TrendingUp,
-  Smartphone,
-  Watch,
-  Headphones,
-  Home as HomeIcon,
 } from "lucide-react";
 import { useProduct } from "../contexts/ProductContext";
 import ProductCard from "../components/ProductCard";
